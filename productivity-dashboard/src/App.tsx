@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 import type { ColumnId, Task } from './types'
 
+// Static board definition used to render the three task lanes.
 const COLUMNS: { id: ColumnId; title: string }[] = [
   { id: 'todo', title: 'To Do' },
   { id: 'inProgress', title: 'In Progress' },
@@ -11,20 +12,24 @@ const COLUMNS: { id: ColumnId; title: string }[] = [
 ]
 
 function App() {
+  // Human-readable date shown in the dashboard header.
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   })
 
+  // Seed tasks so the board is not empty on first load.
   const [tasks, setTasks] = useState<Task[]>([
     { id: '1', title: 'Set up Vite project', column: 'done', createdAt: Date.now() },
     { id: '2', title: 'Create TypeScript types', column: 'inProgress', createdAt: Date.now() },
     { id: '3', title: 'Build Kanban board', column: 'todo', createdAt: Date.now() },
   ])
 
+  // Controlled input value for creating a new task.
   const [newTask, setNewTask] = useState('')
 
+  // Adds a task to the "To Do" column and clears the input.
   const addTask = () => {
     if (!newTask.trim()) return
 
@@ -39,6 +44,7 @@ function App() {
     setNewTask('')
   }
 
+  // Moves a task to a different column by id.
   const moveTask = (id: string, column: ColumnId) => {
     setTasks(prev => prev.map(t => (t.id === id ? { ...t, column } : t)))
   }
@@ -55,6 +61,7 @@ function App() {
         <div className="widget widget-kanban">
           <div className="widget-title">Task Board</div>
 
+          {/* Input row for creating tasks. */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
             <input
               value={newTask}
@@ -90,6 +97,7 @@ function App() {
             </button>
           </div>
 
+          {/* Render each column and then only the tasks that belong in that column. */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             {COLUMNS.map(col => (
               <div
@@ -128,6 +136,7 @@ function App() {
                     >
                       <div style={{ marginBottom: 6 }}>{task.title}</div>
 
+                      {/* Show move buttons for all columns except the current one. */}
                       <div style={{ display: 'flex', gap: 4 }}>
                         {COLUMNS.filter(c => c.id !== col.id).map(c => (
                           <button
