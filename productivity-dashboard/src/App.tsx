@@ -1,14 +1,29 @@
 import './App.css'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import type { ColumnId, Task } from './types'
+import Board from './components/Board/board'
+import PomodoroTimer from './components/PomodoroTimer/pomodoroTimer'
+import ProgressTracker from './components/ProgressTracker/progressTracker'
+import QuickNotes from './components/QuickNotes/quickNotes'
+
+import type { ColumnDefinition, ColumnId, Task, TaskColumn } from './types'
 
 // Static board definition used to render the three task lanes.
-const COLUMNS: { id: ColumnId; title: string }[] = [
+const COLUMNS: ColumnDefinition[] = [
   { id: 'todo', title: 'To Do' },
   { id: 'inProgress', title: 'In Progress' },
   { id: 'done', title: 'Done' },
+]
+
+// 25-minute default for a standard Pomodoro session.
+const FOCUS_DURATION_SECONDS = 25 * 60
+
+// Starter data for first render. Using fixed numbers avoids impure calls in render.
+const INITIAL_TASKS: Task[] = [
+  { id: '1', title: 'Set up Vite project', column: 'done', createdAt: 1 },
+  { id: '2', title: 'Create TypeScript types', column: 'inProgress', createdAt: 2 },
+  { id: '3', title: 'Build Kanban board', column: 'todo', createdAt: 3 },
 ]
 
 function App() {
@@ -20,14 +35,38 @@ function App() {
   })
 
   // Seed tasks so the board is not empty on first load.
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', title: 'Set up Vite project', column: 'done', createdAt: Date.now() },
-    { id: '2', title: 'Create TypeScript types', column: 'inProgress', createdAt: Date.now() },
-    { id: '3', title: 'Build Kanban board', column: 'todo', createdAt: Date.now() },
-  ])
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS)
 
   // Controlled input value for creating a new task.
   const [newTask, setNewTask] = useState('')
+  // Quick notes text is also stored here so the input stays controlled.
+  const [notes, setNotes] = useState('')
+  // Timer state is centralized in App and passed down as props.
+  const [focusSecondsRemaining, setFocusSecondsRemaining] = useState(FOCUS_DURATION_SECONDS)
+  const [isFocusRunning, setIsFocusRunning] = useState(false)
+
+  // Side-effect: tick timer once per second while running.
+  // Dependency array means this effect re-evaluates when running state changes.
+  useEffect(() => {
+    // If timer is paused, do not create an interval.
+    if (!isFocusRunning) return
+
+    const timerId = window.setInterval(() => {
+      // Functional update reads the latest value safely.
+      setFocusSecondsRemaining(currentSeconds => {
+        // Auto-stop and reset when countdown reaches zero.
+        if (currentSeconds <= 1) {
+          window.clearInterval(timerId)
+          setIsFocusRunning(false)
+          return FOCUS_DURATION_SECONDS
+        }
+
+        return currentSeconds - 1
+      })
+    }, 1000)
+
+    return () => window.clearInterval(timerId)
+  }, [isFocusRunning])
 
   // Adds a task to the "To Do" column and clears the input.
   const addTask = () => {
@@ -49,6 +88,26 @@ function App() {
     setTasks(prev => prev.map(t => (t.id === id ? { ...t, column } : t)))
   }
 
+  // Starts when paused, pauses when running.
+  const toggleFocusTimer = () => {
+    setIsFocusRunning(currentValue => !currentValue)
+  }
+
+  // Stops countdown and restores full focus duration.
+  const resetFocusTimer = () => {
+    setIsFocusRunning(false)
+    setFocusSecondsRemaining(FOCUS_DURATION_SECONDS)
+  }
+
+  // Transform flat task state into a shape that the Board UI can render directly.
+  const boardColumns: TaskColumn[] = COLUMNS.map(column => ({
+    ...column,
+    tasks: tasks.filter(task => task.column === column.id),
+  }))
+
+  // Derived state: count completed tasks for the progress widget.
+  const completedTasks = tasks.filter(task => task.column === 'done').length
+
   return (
     <div className="app">
       <header className="app-header">
@@ -57,139 +116,43 @@ function App() {
       </header>
 
       <div className="dashboard-grid">
-        {/* Kanban Board */}
+        {/* Board receives data + callbacks, and only handles rendering and UI events. */}
         <div className="widget widget-kanban">
           <div className="widget-title">Task Board</div>
 
-          {/* Input row for creating tasks. */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-            <input
-              value={newTask}
-              onChange={e => setNewTask(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addTask()}
-              placeholder="Add a task..."
-              style={{
-                flex: 1,
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                padding: '8px 12px',
-                color: 'var(--text)',
-                fontSize: 14,
-                outline: 'none',
-              }}
-            />
-
-            <button
-              onClick={addTask}
-              style={{
-                background: 'var(--accent)',
-                color: '#000',
-                border: 'none',
-                borderRadius: 8,
-                padding: '8px 16px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontSize: 14,
-              }}
-            >
-              Add
-            </button>
-          </div>
-
-          {/* Render each column and then only the tasks that belong in that column. */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            {COLUMNS.map(col => (
-              <div
-                key={col.id}
-                style={{
-                  background: 'var(--surface2)',
-                  borderRadius: 12,
-                  padding: 12,
-                  minHeight: 120,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: 'var(--muted)',
-                    marginBottom: 10,
-                  }}
-                >
-                  {col.title} ({tasks.filter(t => t.column === col.id).length})
-                </div>
-
-                {tasks
-                  .filter(t => t.column === col.id)
-                  .map(task => (
-                    <div
-                      key={task.id}
-                      style={{
-                        background: 'var(--surface)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 8,
-                        padding: '8px 10px',
-                        marginBottom: 8,
-                        fontSize: 13,
-                      }}
-                    >
-                      <div style={{ marginBottom: 6 }}>{task.title}</div>
-
-                      {/* Show move buttons for all columns except the current one. */}
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        {COLUMNS.filter(c => c.id !== col.id).map(c => (
-                          <button
-                            key={c.id}
-                            onClick={() => moveTask(task.id, c.id)}
-                            style={{
-                              fontSize: 10,
-                              padding: '2px 6px',
-                              borderRadius: 4,
-                              background: 'var(--surface2)',
-                              border: '1px solid var(--border)',
-                              color: 'var(--muted)',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            → {c.title}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            ))}
-          </div>
+          <Board
+            columns={boardColumns}
+            newTaskTitle={newTask}
+            onNewTaskTitleChange={setNewTask}
+            onTaskCreate={addTask}
+            onTaskMove={moveTask}
+          />
         </div>
 
-        {/* Pomodoro Timer placeholder */}
+        {/* Timer widget is presentational; App manages countdown logic/state. */}
         <div className="widget">
           <div className="widget-title">Focus Timer</div>
-          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted)', fontSize: 13 }}>
-            🍅 Pomodoro timer coming soon
-          </div>
+
+          <PomodoroTimer
+            secondsRemaining={focusSecondsRemaining}
+            isRunning={isFocusRunning}
+            onToggle={toggleFocusTimer}
+            onReset={resetFocusTimer}
+          />
         </div>
 
-        {/* Quick Notes placeholder */}
+        {/* Notes widget is controlled by App state. */}
         <div className="widget">
           <div className="widget-title">Quick Notes</div>
-          <textarea
-            placeholder="Jot something down..."
-            style={{
-              width: '100%',
-              minHeight: 100,
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              padding: '10px 12px',
-              color: 'var(--text)',
-              fontSize: 13,
-              resize: 'none',
-              outline: 'none',
-              fontFamily: 'inherit',
-            }}
-          />
+
+          <QuickNotes value={notes} onChange={setNotes} />
+        </div>
+
+        {/* Progress widget receives derived numbers from task state. */}
+        <div className="widget">
+          <div className="widget-title">Progress Tracker</div>
+
+          <ProgressTracker completedTasks={completedTasks} totalTasks={tasks.length} />
         </div>
       </div>
     </div>

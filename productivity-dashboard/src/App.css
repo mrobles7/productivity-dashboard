@@ -8,9 +8,9 @@ body {
 
 :root {
   --bg: #0f0f11;
-  --surface: #1a1af;
+  --surface: #1a1a1f;
   --surface2: #22222a;
-  --boarder: #2e2e38;
+  --border: #2e2e38;
   --text: #f0efe8;
   --muted: #888790;
   --accent: #e8c547;
@@ -46,7 +46,7 @@ body {
   color: var(--text);
 }
 
-.app-data {
+.app-date {
   font-size: 13px;
   color: var(--muted);
 }
@@ -60,7 +60,7 @@ body {
 
 .widget {
   background-color: var(--surface);
-  border: 1px solid var(--boarder);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 20px;
 }
@@ -75,3 +75,131 @@ body {
 }
 
 .widget-kanban { grid-column: 1 / -1; }
+
+.board-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.board-column {
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 120px;
+}
+
+.board-column-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.board-task-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.board-task-move {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.notes-input {
+  width: 100%;
+  min-height: 100px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 13px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.timer-widget {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.timer-value {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.timer-status,
+.progress-caption {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.timer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.button {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button-primary {
+  background: var(--accent);
+  color: #101010;
+}
+
+.button-secondary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.progress-summary {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.progress-bar {
+  height: 10px;
+  background: var(--surface2);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e8c547, #4caf82);
+  border-radius: inherit;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .board-columns {
+    grid-template-columns: 1fr;
+  }
+}
